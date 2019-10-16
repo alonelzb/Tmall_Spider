@@ -80,14 +80,15 @@ class TmallSpider(object):
         sellerId = re.findall(r'sellerId:"(\d+)"', response.text)[0]
         item['seller_id'] = sellerId
         item['goods_id'] = itemId
+        try:
         # 商品描述图片
-        desc_url = re.findall(r'"httpsDescUrl":"(.*?)"', response.text)[0]
-        desc_url = f'https:{desc_url}'
-        item['desc_img'] = self.get_desc_imgs(desc_url, detail_url)
-        # 商品评价
-        item['comments'] = self.get_comments(detail_url, itemId, sellerId, shop_name)
+            desc_url = re.findall(r'"httpsDescUrl":"(.*?)"', response.text)[0]
+            desc_url = f'https:{desc_url}'
+            item['desc_img'] = self.get_desc_imgs(desc_url, detail_url)
         except:
-            print('error  ' + detail_url)
+            print('desc error  ' + detail_url)
+         # 商品评价
+        item['comments'] = self.get_comments(detail_url, itemId, sellerId, shop_name)
         return item
 
     # 获取描述页的图片
@@ -137,14 +138,14 @@ class TmallSpider(object):
                         assess['comment_img'] = [f'https:{pic_url}' for pic_url in rate_pics]
                         assess_list.append(assess)
                 comments.append(assess_list)
-                print(f'第{i} 页')
+                print(f'评论共{last_page} 第{i} 页')
                 if i>=last_page:
                     break
                 if i>3:  # 爬取3页，可取消
                     break
                 time.sleep(1)
             except:
-                print('comment   error')
+                print('cookie 失效！')
         return comments
 
     # 下载图片
@@ -230,7 +231,7 @@ class TmallSpider(object):
                     # 4.下载商品图片
                     self.download_image(detail_url, item, shop_name)
                     i += 1
-                    if i == 2:
+                    if i > 2:  # 爬取3件商品
                         break
                 pageNo += 1
                 break  # 爬取某一品牌一页商品的数据
