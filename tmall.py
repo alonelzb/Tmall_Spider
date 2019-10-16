@@ -58,35 +58,34 @@ class TmallSpider(object):
                 'user-agent': UserAgent().random,
                 'referer': f'https://{shop_name}.tmall.com/category.htm?spm=a1z10.3-b-s.w5001-14593428624.15.32dc24b6ydoH4p&scene=taobao_shop'
                 }
-        try:
-            response = requests.get(detail_url, headers=headers)
-            html = etree.HTML(response.text)
-            item['goods_url'] = detail_url
-            # 商品标题
-            item['goods_name'] = html.xpath('string(//div[@class="tb-detail-hd"]/h1)').strip()
-            # 商品属性
-            params = html.xpath('//ul[@id="J_AttrUL"]/li/text()')#.strip()
-            params = {re.sub(r'\xa0', '', i) for i in params}
-            item['params']  = {i.split(':')[0]:i.split(':')[1] for i in params}
-            # 商品预览图片
-            images = html.xpath('//ul[@id="J_UlThumb"]/li/a/img/@src')
-            item['preview_img'] = ['https:' + '_'.join(image.split('_')[:-1]) + '_2200x2200q90.jpg' for image in images]
-            # 商品价格
-            item['price'] =re.findall(r'"reservePrice":"(\d+.00)"', response.text)
-            # print(item['price'])
-            if item['price']:
-                item['price'] = '￥' + re.findall(r'"reservePrice":"(\d+.00)"', response.text)[0]
-            # 获取商品ID和店铺ID
-            itemId = re.findall(r'itemId:"(\d+)"', response.text)[0]
-            sellerId = re.findall(r'sellerId:"(\d+)"', response.text)[0]
-            item['seller_id'] = sellerId
-            item['goods_id'] = itemId
-            # 商品描述图片
-            desc_url = re.findall(r'"httpsDescUrl":"(.*?)"', response.text)[0]
-            desc_url = f'https:{desc_url}'
-            item['desc_img'] = self.get_desc_imgs(desc_url, detail_url)
-            # 商品评价
-            item['comments'] = self.get_comments(detail_url, itemId, sellerId, shop_name)
+        response = requests.get(detail_url, headers=headers)
+        html = etree.HTML(response.text)
+        item = {}
+        item['goods_url'] = detail_url
+        # 商品标题
+        item['goods_name'] = html.xpath('string(//div[@class="tb-detail-hd"]/h1)').strip()
+        # 商品属性
+        params = html.xpath('//ul[@id="J_AttrUL"]/li/text()')#.strip()
+        params = {re.sub(r'\xa0', '', i) for i in params if '：' not in i}
+        item['params']  = {i.split(':')[0]:i.split(':')[1] for i in params}
+        # 商品预览图片
+        images = html.xpath('//ul[@id="J_UlThumb"]/li/a/img/@src')
+        item['preview_img'] = ['https:' + '_'.join(image.split('_')[:-1]) + '_2200x2200q90.jpg' for image in images]
+        # 商品价格
+        item['price'] =re.findall(r'"reservePrice":"(\d+.00)"', response.text)
+        if item['price']:
+            item['price'] = '￥' + re.findall(r'"reservePrice":"(\d+.00)"', response.text)[0]
+        # 获取商品ID和店铺ID
+        itemId = re.findall(r'itemId:"(\d+)"', response.text)[0]
+        sellerId = re.findall(r'sellerId:"(\d+)"', response.text)[0]
+        item['seller_id'] = sellerId
+        item['goods_id'] = itemId
+        # 商品描述图片
+        desc_url = re.findall(r'"httpsDescUrl":"(.*?)"', response.text)[0]
+        desc_url = f'https:{desc_url}'
+        item['desc_img'] = self.get_desc_imgs(desc_url, detail_url)
+        # 商品评价
+        item['comments'] = self.get_comments(detail_url, itemId, sellerId, shop_name)
         except:
             print('error  ' + detail_url)
         return item

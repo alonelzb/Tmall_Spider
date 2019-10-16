@@ -67,7 +67,7 @@ class TmallSpider(object):
         # print(item)
         # 商品属性
         params = html.xpath('//ul[@id="J_AttrUL"]/li/text()')#.strip()
-        params = {re.sub(r'\xa0', '', i) for i in params}
+        params = {re.sub(r'\xa0', '', i) for i in params if '：' not in i}
         try:
             item['params']  = {i.split(':')[0]:i.split(':')[1] for i in params}
         except:
