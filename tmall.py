@@ -29,6 +29,7 @@ class TmallSpider(object):
                 "user-agent": UserAgent().random
                 }
         return headers
+
     # 获取详情页的url
     def get_detail_page(self, url, shop_name):
         headers = {
@@ -44,11 +45,9 @@ class TmallSpider(object):
                 }
         response = requests.get(url, headers=headers)
         pattern = re.compile(r'  href=\\"//detail.tmall.com(.*?)\\" ')
-
         # 获取商品的地址
         detail_urls = pattern.findall(response.text)
         detail_url_list = list(set([f'https://detail.tmall.com{url}' for url in detail_urls]))[:-8]
-
         # 是否有下一页
         next_page = re.findall(r'<a class=\\"disable\\">下一页',response.text)
         return detail_url_list, next_page
@@ -62,8 +61,6 @@ class TmallSpider(object):
         try:
             response = requests.get(detail_url, headers=headers)
             html = etree.HTML(response.text)
-
-            item = {}
             item['goods_url'] = detail_url
             # 商品标题
             item['goods_name'] = html.xpath('string(//div[@class="tb-detail-hd"]/h1)').strip()
@@ -79,7 +76,6 @@ class TmallSpider(object):
             # print(item['price'])
             if item['price']:
                 item['price'] = '￥' + re.findall(r'"reservePrice":"(\d+.00)"', response.text)[0]
-            
             # 获取商品ID和店铺ID
             itemId = re.findall(r'itemId:"(\d+)"', response.text)[0]
             sellerId = re.findall(r'sellerId:"(\d+)"', response.text)[0]
@@ -89,12 +85,10 @@ class TmallSpider(object):
             desc_url = re.findall(r'"httpsDescUrl":"(.*?)"', response.text)[0]
             desc_url = f'https:{desc_url}'
             item['desc_img'] = self.get_desc_imgs(desc_url, detail_url)
-
             # 商品评价
             item['comments'] = self.get_comments(detail_url, itemId, sellerId, shop_name)
         except:
             print('error  ' + detail_url)
-
         return item
 
     # 获取描述页的图片
@@ -112,12 +106,8 @@ class TmallSpider(object):
             print('error  get_desc_img')
         return desc_imgs
 
-
     # 获取商品评价
     def get_comments(self, detail_url, itemId, sellerId, shop_name):
-        # headers = self.headers(shop_name)
-
-        # headers['referer'] = detail_url
         headers = {
                 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36',
                 'cookie': COOKIE,
@@ -136,7 +126,6 @@ class TmallSpider(object):
                 rates = json.loads(rates)
                 rate_list = rates['rateList']
                 paginator = rates['paginator']
-
                 # 实际的总评论页数，
                 last_page = paginator['lastPage']
                 assess_list = []
@@ -159,8 +148,6 @@ class TmallSpider(object):
                 print('comment   error')
         return comments
 
-
-
     # 下载图片
     def download_image(self, detail_url, item, shop_name):
         headers = {
@@ -168,20 +155,17 @@ class TmallSpider(object):
                 'Referer': detail_url
                 }
         itemId = re.findall(r'id=(\d+)&', detail_url)[0]
-
         # 商品预览图片
         Path(f'./{shop_name}/{itemId}/preview').mkdir(parents=True,exist_ok=True)
         i = 1
         for image_url in item['preview_img']:
             response = requests.get(image_url, headers=headers)
             image_name = f'preview_{i}.jpg'
-
             with open(f'./{shop_name}/{itemId}/preview/{image_name}', 'wb') as f:
                 f.write(response.content)
                 print(f'success--preivew_{i}')
             i += 1
-
-        # 描述图片
+        # 描述图片下载
         Path(f'./{shop_name}/{itemId}/desc').mkdir(parents=True, exist_ok=True)
         k = 1
         for image_url in item['desc_img']:
@@ -194,9 +178,8 @@ class TmallSpider(object):
                 print(f'success--desc_{k}')
             k += 1
 
-        # 评论图片
+        # 评论图片下载
         Path(f'./{shop_name}/{itemId}/comment').mkdir(parents=True,exist_ok=True)
-
         comment_list = item['comments']
         urls = []
         for comment_list in item['comments']:
@@ -217,7 +200,6 @@ class TmallSpider(object):
                 logger.debug(f'error!-------------{url}')
                 print(f'error!-------------{url}')
             j += 1
-
         logger = self.get_logger()
         logger.info('one item finished!')
         print('one item finished!' + '*'*100)
@@ -252,10 +234,8 @@ class TmallSpider(object):
                     if i == 2:
                         break
                 pageNo += 1
-                break
-            break
-
-                # pageNo += 1
+                break  # 爬取某一品牌一页商品的数据
+            break  # 爬取一个品牌, 可注释
 
     # 日志
     def get_logger(self):
@@ -266,12 +246,12 @@ class TmallSpider(object):
         logger = logging.getLogger(__name__)
         return logger
 
+
 if __name__ == '__main__':
     tmall = TmallSpider()
     start = time.time()
     tmall.run()
     end = time.time()
     print(f'用时：{end -start} s')
-
     # with open('./usetime.txt','a') as f:
         # f.write(str(end-start))

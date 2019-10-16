@@ -29,6 +29,7 @@ class TmallSpider(object):
                 "user-agent": UserAgent().random
                 }
         return headers
+
     # 获取详情页的url
     def get_detail_page(self, url, shop_name):
         headers = {
@@ -47,7 +48,6 @@ class TmallSpider(object):
         # 获取商品的地址
         detail_urls = pattern.findall(response.text)
         detail_url_list = list(set([f'https://detail.tmall.com{url}' for url in detail_urls]))[:-8]
-
         # 是否有下一页
         next_page = re.findall(r'<a class=\\"disable\\">下一页',response.text)
         return detail_url_list, next_page
@@ -60,7 +60,6 @@ class TmallSpider(object):
                 }
         response = requests.get(detail_url, headers=headers)
         html = etree.HTML(response.text)
-
         item = {}
         item['goods_url'] = detail_url
         # 商品标题
@@ -82,7 +81,6 @@ class TmallSpider(object):
         # print(item['price'])
         if item['price']:
             item['price'] = '￥' + re.findall(r'"reservePrice":"(\d+.00)"', response.text)[0]
-        
         # 获取商品ID和店铺ID
         itemId = re.findall(r'itemId:"(\d+)"', response.text)[0]
         sellerId = re.findall(r'sellerId:"(\d+)"', response.text)[0]
@@ -95,7 +93,6 @@ class TmallSpider(object):
             item['desc_img'] = self.get_desc_imgs(desc_url, detail_url)
         except:
             print('error  ' + detail_url)
-
         return item
 
     # 获取描述页的图片
@@ -112,8 +109,6 @@ class TmallSpider(object):
         except:
             print('error  get_desc_img')
         return desc_imgs
-
-
 
     # 商品信息存入json
     def save_to_json(self, item, detail_url, shop_name):
@@ -140,12 +135,12 @@ class TmallSpider(object):
                     # 3.保存json
                     self.save_to_json(item, detail_url, shop_name)
                     i += 1
-                    if i > 9:
+                    if i > 9:  # 爬取10件商品，可自行修改或注释
                         break
                 pageNo += 1
                 time.sleep(2)
-                break
-            break
+                break  # 爬取一页，可注释
+            break  # 爬取一个品牌，可注释
 
 
 if __name__ == '__main__':
